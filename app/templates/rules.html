@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Regras (YAML)</h2>
+<p class="muted">Define quais comentários disparam a automação, o texto da DM e o prompt da IA.
+Se houver erro de formato, o arquivo não é salvo.</p>
+{% if error %}<p class="err">{{ error }}</p>{% endif %}
+<form class="card" method="post" action="/rules">
+  <textarea name="text" style="min-height:420px;font-family:ui-monospace,Menlo,monospace;font-size:13px">{{ text }}</textarea>
+  <div class="row"><button class="primary" type="submit">Salvar regras</button></div>
+</form>
+{% endblock %}

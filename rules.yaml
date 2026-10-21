@@ -1,0 +1,35 @@
+# Regras do Sonar Reply. Edite aqui ou pela página "Regras" do painel.
+# A primeira regra que combinar com o comentário é usada.
+#
+# match:
+#   any: true                   -> qualquer comentário
+#   keywords: [quero, link]     -> comentário que contenha alguma palavra (ignora acento e maiúscula)
+# media_ids: [ ... ]            -> (opcional) limita a regra a posts/reels específicos
+# use_ai: true                  -> gera a resposta pública com IA; se falhar, usa public_replies
+# dm: texto da DM inicial. Deve terminar com uma pergunta (a Meta só permite 1 mensagem
+#     até a pessoa responder). Variável: {nome}
+
+follow_up: "Aqui está o link do nosso grupo: {link}\nTe esperamos lá! 🧡"
+
+optout_words: [nao, parar, sair, cancelar]
+
+rules:
+  - name: geral
+    match:
+      any: true
+    use_ai: true
+    ai_prompt: >
+      Você responde comentários no Instagram do perfil @sonar_pet, que posta humor e
+      dicas sobre cachorros e gatos. Escreva UMA resposta curta em português do Brasil
+      (até 120 caracteres), simpática e natural, reagindo ao que a pessoa escreveu.
+      Termine avisando que enviou uma mensagem no direct. Não inclua links, preços,
+      promessas nem hashtags. Se o comentário for ofensivo, responda apenas com um
+      agradecimento neutro.
+    public_replies:
+      - "Valeu pelo comentário! Te mandei uma mensagem no direct 🐾"
+      - "Opa! Olha seu direct, enviei uma mensagem por lá 🐶"
+      - "Obrigado! Confere seu direct que te mandei um recado 🧡"
+    dm: >
+      Oi, {nome}! Que bom ter você por aqui 😊
+      Temos um grupo com ofertas e dicas para quem ama pets, todos os dias.
+      Quer conhecer? Responda "quero" que eu te envio o link!

@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  {% if settings.dry_run %}
+    <span class="badge warn">MODO TESTE: nada é enviado à Meta</span>
+  {% else %}
+    <span class="badge ok">MODO REAL</span>
+  {% endif %}
+  {% if settings.approval_mode %}
+    <span class="badge ok">Aprovação manual ligada</span>
+  {% else %}
+    <span class="badge warn">Envio automático</span>
+  {% endif %}
+  <span class="badge">Limite: {{ settings.max_replies_per_hour }}/hora</span>
+</div>
+
+<h2>Aguardando aprovação ({{ pending|length }})</h2>
+{% for item in pending %}
+<form class="card" method="post" action="/queue/{{ item.id }}/approve">
+  <div class="muted">#{{ item.id }} · @{{ item.username }} · {{ item.created_at }} UTC · regra "{{ item.rule_name }}"</div>
+  {% if snippets.get(item.comment_id) %}
+  <p class="muted"><strong>Post:</strong> {{ snippets[item.comment_id][:140] }}{% if snippets[item.comment_id]|length > 140 %}…{% endif %}</p>
+  {% endif %}
+  <p><strong>Comentário:</strong> {{ item.comment_text }}</p>
+  {% if item.error %}<p class="err">{{ item.error }}</p>{% endif %}
+  <label>Resposta pública (sem links, até 150 caracteres)</label>
+  <input type="text" name="public_reply" maxlength="150" value="{{ item.public_reply }}">
+  {% if item.dm_done and not item.dm_text %}
+  <p class="muted"><span class="badge warn">Sem DM</span> Esta pessoa já recebeu a DM do grupo. Só a resposta pública será enviada.</p>
+  <input type="hidden" name="dm_text" value="">
+  {% else %}
+  <label>DM inicial</label>
+  <textarea name="dm_text">{{ item.dm_text }}</textarea>
+  {% endif %}
+  <div class="row">
+    <button class="primary" type="submit">Aprovar e enviar</button>
+    <button type="submit" formaction="/queue/{{ item.id }}/reject"
+            formnovalidate>Descartar</button>
+  </div>
+</form>
+{% else %}
+<p class="muted">Nada na fila. Novos comentários aparecem aqui.</p>
+{% endfor %}
+
+{% if failed %}
+<h2>Com falha ({{ failed|length }})</h2>
+{% for item in failed %}
+<form class="card" method="post" action="/queue/{{ item.id }}/retry">
+  <div class="muted">#{{ item.id }} · @{{ item.username }}</div>
+  <p class="err">{{ item.error }}</p>
+  <div class="row">
+    <button type="submit">Tentar de novo</button>
+    <button type="submit" formaction="/queue/{{ item.id }}/reject">Descartar</button>
+  </div>
+</form>
+{% endfor %}
+{% endif %}
+
+<h2>Histórico recente</h2>
+<div class="card">
+  <div class="row">
+    {% for key, label in [("todos", "Todos"), ("enviados", "Enviados"), ("rejeitados", "Rejeitados")] %}
+      <a class="badge {% if h == key %}ok{% endif %}" href="/?h={{ key }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+<table>
+  <tr><th>#</th><th>Usuário</th><th>Resposta</th><th>Status</th><th></th></tr>
+  {% for item in history %}
+  <tr>
+    <td>{{ item.id }}</td><td>@{{ item.username }}</td>
+    <td>{{ item.public_reply }}<div class="muted">{{ item.created_at }} UTC</div></td>
+    <td>{{ item.status }}</td>
+    <td>
+      {% if item.status == "rejected" %}
+      <form method="post" action="/queue/{{ item.id }}/restore">
+        <input type="hidden" name="next" value="/?h={{ h }}&hp={{ hp }}&lp={{ lp }}">
+        <button type="submit">Reativar</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">Nada por aqui ainda.</td></tr>
+  {% endfor %}
+</table>
+{% if h_pages > 1 %}
+  <div class="row">
+    {% if hp > 1 %}<a href="/?h={{ h }}&hp={{ hp - 1 }}&lp={{ lp }}">← Anterior</a>{% endif %}
+    <span class="muted">Página {{ hp }} de {{ h_pages }}</span>
+    {% if hp < h_pages %}<a href="/?h={{ h }}&hp={{ hp + 1 }}&lp={{ lp }}">Próxima →</a>{% endif %}
+  </div>
+{% endif %}
+<p class="muted">Reativar devolve o item para "Aguardando aprovação". A Meta só aceita a DM de um comentário em até 7 dias.</p>
+</div>
+
+<h2>Excluir dados de uma pessoa (LGPD)</h2>
+<form class="card" method="post" action="/privacy/delete"
+      onsubmit="return confirm('Apagar TODOS os dados desta pessoa? Isso não pode ser desfeito.')">
+  {% if deleted >= 0 %}<p class="badge ok">{{ deleted }} registros apagados</p>{% endif %}
+  <p class="muted">Para pedidos feitos pela página de exclusão de dados do site. Informe o @usuário ou o ID da conta.</p>
+  <label>@usuário ou ID</label>
+  <input type="text" name="identifier" required>
+  <div class="row"><button type="submit">Apagar dados</button></div>
+</form>
+
+<h2>Registro de atividade</h2>
+<div class="card">
+<table>
+  {% for l in logs %}
+  <tr><td class="muted">{{ l.ts }}</td><td>{{ l.level }}</td><td>{{ l.message }}</td></tr>
+  {% else %}
+  <tr><td class="muted">Nada registrado ainda.</td></tr>
+  {% endfor %}
+</table>
+{% if l_pages > 1 %}
+  <div class="row">
+    {% if lp > 1 %}<a href="/?h={{ h }}&hp={{ hp }}&lp={{ lp - 1 }}">← Mais novos</a>{% endif %}
+    <span class="muted">Página {{ lp }} de {{ l_pages }}</span>
+    {% if lp < l_pages %}<a href="/?h={{ h }}&hp={{ hp }}&lp={{ lp + 1 }}">Mais antigos →</a>{% endif %}
+  </div>
+{% endif %}
+</div>
+{% endblock %}
